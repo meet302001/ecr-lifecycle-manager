@@ -1,0 +1,90 @@
+name: Apply ECR Lifecycle Policies
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - lifecycle-policy.json
+      - repos.txt
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Run mode"
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - apply
+
+permissions:
+  id-token: write   # required for OIDC
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+
+jobs:
+  dry-run:
+    name: Dry Run (Preview)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Validate policy JSON
+        run: |
+          echo "Validating lifecycle-policy.json..."
+          python3 -c "import json, sys; json.load(open('lifecycle-policy.json')); print('JSON is valid')"
+
+      - name: Preview policy on sample repos
+        run: |
+          chmod +x dry-run.sh
+
+          # Run dry-run on first 3 repos as a representative sample
+          head -3 repos.txt | while IFS= read -r repo; do
+            echo ""
+            echo "==============================="
+            echo "Preview: $repo"
+            echo "==============================="
+            ./dry-run.sh "$repo" || echo "WARNING: Preview failed for $repo (repo may be empty or not exist)"
+          done
+
+  apply:
+    name: Apply Lifecycle Policies
+    runs-on: ubuntu-latest
+    needs: dry-run
+    # On push to main: apply automatically
+    # On manual trigger: only apply if mode = apply
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'apply')
+
+    environment: production   # requires manual approval in GitHub (configure in repo settings)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Apply lifecycle policy to all repos
+        run: |
+          chmod +x apply-lifecycle-policy.sh
+          ./apply-lifecycle-policy.sh
+
+      - name: Verify all repos have a policy
+        run: |
+          chmod +x verify.sh
+          ./verify.sh
