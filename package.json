@@ -1,0 +1,7 @@
+{
+  "name": "ecr-lifecycle-manager",
+  "version": "1.0.0",
+  "dependencies": {
+    "@aws-sdk/client-ecr": "^3.1037.0"
+  }
+}
