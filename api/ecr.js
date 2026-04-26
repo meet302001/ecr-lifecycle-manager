@@ -14,17 +14,46 @@ function makeClient({ accessKeyId, secretAccessKey, region }) {
   });
 }
 
+function send(res, status, data) {
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.statusCode = status;
+  res.end(JSON.stringify(data));
+}
+
+async function parseBody(req) {
+  return new Promise((resolve, reject) => {
+    if (req.body) return resolve(req.body);
+    let raw = "";
+    req.on("data", (chunk) => (raw += chunk));
+    req.on("end", () => {
+      try { resolve(raw ? JSON.parse(raw) : {}); }
+      catch { reject(new Error("Invalid JSON body")); }
+    });
+    req.on("error", reject);
+  });
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
 
-  const action = req.query.action;
+  if (req.method === "OPTIONS") {
+    res.statusCode = 200;
+    return res.end();
+  }
+
+  const action = req.query?.action;
 
   try {
+    const body = await parseBody(req);
+
     if (action === "connect") {
-      const { accessKeyId, secretAccessKey, region } = req.body;
+      const { accessKeyId, secretAccessKey, region } = body;
+      if (!accessKeyId || !secretAccessKey || !region)
+        return send(res, 400, { error: "Missing credentials" });
+
       const client = makeClient({ accessKeyId, secretAccessKey, region });
       const repos = [];
       let nextToken;
@@ -33,11 +62,11 @@ module.exports = async function handler(req, res) {
         repos.push(...data.repositories.map((r) => r.repositoryName));
         nextToken = data.nextToken;
       } while (nextToken);
-      return res.json({ repos });
+      return send(res, 200, { repos });
     }
 
     if (action === "dry-run-start") {
-      const { credentials, repos, policy } = req.body;
+      const { credentials, repos, policy } = body;
       const client = makeClient(credentials);
       const policyText = JSON.stringify(policy);
       const results = await Promise.allSettled(
@@ -50,11 +79,11 @@ module.exports = async function handler(req, res) {
         if (r.status === "fulfilled") started.push(repos[i]);
         else failed.push({ repo: repos[i], error: r.reason.message });
       });
-      return res.json({ started, failed });
+      return send(res, 200, { started, failed });
     }
 
     if (action === "dry-run-results") {
-      const { credentials, repos } = req.body;
+      const { credentials, repos } = body;
       const client = makeClient(credentials);
       const results = await Promise.allSettled(
         repos.map((repo) => client.send(new GetLifecyclePolicyPreviewCommand({ repositoryName: repo })))
@@ -70,36 +99,38 @@ module.exports = async function handler(req, res) {
             .map((img) => ({ tags: img.imageTags, digest: img.imageDigest, pushedAt: img.imagePushedAt })),
         };
       });
-      return res.json({ results: output });
+      return send(res, 200, { results: output });
     }
 
     if (action === "apply") {
-      const { credentials, repos, policy } = req.body;
+      const { credentials, repos, policy } = body;
       const client = makeClient(credentials);
       const policyText = JSON.stringify(policy);
       const results = await Promise.allSettled(
-        repos.map((repo) => client.send(new PutLifecyclePolicyCommand({ repositoryName: repo, lifecyclePolicyText: policyText })))
+        repos.map((repo) =>
+          client.send(new PutLifecyclePolicyCommand({ repositoryName: repo, lifecyclePolicyText: policyText }))
+        )
       );
       const output = results.map((r, i) => ({
         repo: repos[i],
         status: r.status === "fulfilled" ? "success" : "failed",
         error: r.status === "rejected" ? r.reason.message : undefined,
       }));
-      return res.json({ results: output });
+      return send(res, 200, { results: output });
     }
 
     if (action === "verify") {
-      const { credentials, repos } = req.body;
+      const { credentials, repos } = body;
       const client = makeClient(credentials);
       const results = await Promise.allSettled(
         repos.map((repo) => client.send(new GetLifecyclePolicyCommand({ repositoryName: repo })))
       );
       const output = results.map((r, i) => ({ repo: repos[i], hasPolicy: r.status === "fulfilled" }));
-      return res.json({ results: output });
+      return send(res, 200, { results: output });
     }
 
-    res.status(400).json({ error: "Unknown action" });
+    return send(res, 400, { error: `Unknown action: ${action}` });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return send(res, 500, { error: err.message });
   }
 };

@@ -31,7 +31,10 @@ export default function AwsConfig({ onConnected }) {
           region: form.region,
         }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); }
+      catch { throw new Error(`Server error (${res.status}): ${text.slice(0, 100)}`); }
       if (!res.ok) throw new Error(data.error);
       setStatus("success");
       onConnected({ credentials: { accessKeyId: form.accessKeyId, secretAccessKey: form.secretAccessKey, region: form.region, accountId: form.accountId }, repos: data.repos });
