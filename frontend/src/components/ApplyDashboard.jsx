@@ -12,7 +12,7 @@ export default function ApplyDashboard({ credentials, selectedRepos, policy, dry
     setError("");
 
     try {
-      const res = await fetch("/api/ecr/apply", {
+      const res = await fetch("/api/ecr?action=apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ credentials, repos: selectedRepos, policy }),

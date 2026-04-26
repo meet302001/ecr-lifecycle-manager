@@ -22,7 +22,7 @@ export default function AwsConfig({ onConnected }) {
     setStatus("loading");
     setError("");
     try {
-      const res = await fetch("/api/ecr/connect", {
+      const res = await fetch("/api/ecr?action=connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

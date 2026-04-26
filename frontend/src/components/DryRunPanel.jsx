@@ -14,7 +14,7 @@ export default function DryRunPanel({ credentials, selectedRepos, policy, onComp
 
     try {
       // Start previews
-      await fetch("/api/ecr/dry-run/start", {
+      await fetch("/api/ecr?action=dry-run-start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ credentials, repos: selectedRepos, policy }),
@@ -27,7 +27,7 @@ export default function DryRunPanel({ credentials, selectedRepos, policy, onComp
 
       while (!allDone) {
         await new Promise((r) => setTimeout(r, 4000));
-        const res = await fetch("/api/ecr/dry-run/results", {
+        const res = await fetch("/api/ecr?action=dry-run-results", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ credentials, repos: selectedRepos }),
