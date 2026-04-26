@@ -2,11 +2,40 @@
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
-    { "source": "/api/ecr/connect", "destination": "/api/ecr?action=connect" },
-    { "source": "/api/ecr/dry-run/start", "destination": "/api/ecr?action=dry-run-start" },
-    { "source": "/api/ecr/dry-run/results", "destination": "/api/ecr?action=dry-run-results" },
-    { "source": "/api/ecr/apply", "destination": "/api/ecr?action=apply" },
-    { "source": "/api/ecr/verify", "destination": "/api/ecr?action=verify" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+    {
+      "source": "/api/ecr/connect",
+      "destination": "/api/ecr?action=connect"
+    },
+    {
+      "source": "/api/ecr/dry-run/start",
+      "destination": "/api/ecr?action=dry-run-start"
+    },
+    {
+      "source": "/api/ecr/dry-run/results",
+      "destination": "/api/ecr?action=dry-run-results"
+    },
+    {
+      "source": "/api/ecr/apply",
+      "destination": "/api/ecr?action=apply"
+    },
+    {
+      "source": "/api/ecr/verify",
+      "destination": "/api/ecr?action=verify"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "experimentalServices": {
+    "frontend": {
+      "entrypoint": "frontend",
+      "routePrefix": "/",
+      "framework": "vite"
+    },
+    "backend": {
+      "entrypoint": "backend",
+      "routePrefix": "/_/backend"
+    }
+  }
 }

@@ -4,6 +4,10 @@ A professional web UI for managing AWS Elastic Container Registry (ECR) lifecycl
 
 ![ECR Lifecycle Manager](https://img.shields.io/badge/AWS-ECR-orange?logo=amazonaws) ![React](https://img.shields.io/badge/React-18-blue?logo=react) ![Node.js](https://img.shields.io/badge/Node.js-Express-green?logo=nodedotjs) ![Docker](https://img.shields.io/badge/Docker-Compose-blue?logo=docker)
 
+**[Live Demo →](https://ecr-lifecycle-manager-5u2uzb4xk-meets-projects-b57b44a7.vercel.app)**
+
+![ECR Lifecycle Manager Screenshot](docs/image.png)
+
 ---
 
 ## Features
