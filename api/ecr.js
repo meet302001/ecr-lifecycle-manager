@@ -1,4 +1,12 @@
 const crypto = require("crypto");
+const {
+  ECRClient,
+  DescribeRepositoriesCommand,
+  StartLifecyclePolicyPreviewCommand,
+  GetLifecyclePolicyPreviewCommand,
+  PutLifecyclePolicyCommand,
+  GetLifecyclePolicyCommand,
+} = require("@aws-sdk/client-ecr");
 
 const SECRET = process.env.SESSION_SECRET;
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "http://localhost:5173";
@@ -79,8 +87,6 @@ module.exports = async function handler(req, res) {
       if (!accessKeyId || !secretAccessKey || !region)
         return send(res, 400, { error: "Missing credentials" });
 
-      // Lazy-load AWS SDK to isolate any module errors
-      const { ECRClient, DescribeRepositoriesCommand } = require("@aws-sdk/client-ecr");
       const client = new ECRClient({ region, credentials: { accessKeyId, secretAccessKey } });
 
       try {
@@ -102,7 +108,6 @@ module.exports = async function handler(req, res) {
       const session = getSession(req, res);
       if (!session) return;
       const { repos, policy } = body;
-      const { ECRClient, StartLifecyclePolicyPreviewCommand } = require("@aws-sdk/client-ecr");
       const client = new ECRClient({ region: session.region, credentials: { accessKeyId: session.accessKeyId, secretAccessKey: session.secretAccessKey } });
       const policyText = JSON.stringify(policy);
       const results = await Promise.allSettled(
@@ -120,7 +125,6 @@ module.exports = async function handler(req, res) {
       const session = getSession(req, res);
       if (!session) return;
       const { repos } = body;
-      const { ECRClient, GetLifecyclePolicyPreviewCommand } = require("@aws-sdk/client-ecr");
       const client = new ECRClient({ region: session.region, credentials: { accessKeyId: session.accessKeyId, secretAccessKey: session.secretAccessKey } });
       const results = await Promise.allSettled(
         repos.map((repo) => client.send(new GetLifecyclePolicyPreviewCommand({ repositoryName: repo })))
@@ -145,7 +149,6 @@ module.exports = async function handler(req, res) {
       if (!dryRunCompleted.has(tokenId))
         return send(res, 403, { error: "Complete a dry run before applying." });
       const { repos, policy } = body;
-      const { ECRClient, PutLifecyclePolicyCommand } = require("@aws-sdk/client-ecr");
       const client = new ECRClient({ region: session.region, credentials: { accessKeyId: session.accessKeyId, secretAccessKey: session.secretAccessKey } });
       const policyText = JSON.stringify(policy);
       const results = await Promise.allSettled(
@@ -163,7 +166,6 @@ module.exports = async function handler(req, res) {
       const session = getSession(req, res);
       if (!session) return;
       const { repos } = body;
-      const { ECRClient, GetLifecyclePolicyCommand } = require("@aws-sdk/client-ecr");
       const client = new ECRClient({ region: session.region, credentials: { accessKeyId: session.accessKeyId, secretAccessKey: session.secretAccessKey } });
       const results = await Promise.allSettled(
         repos.map((repo) => client.send(new GetLifecyclePolicyCommand({ repositoryName: repo })))
