@@ -40,8 +40,8 @@ export default function App() {
   }
 
   const steps = [
-    { number: 1, label: "Configure AWS", done: !!credentials },
-    { number: 2, label: "Build Policy", done: !!credentials },
+    { number: 1, label: "Configure AWS", done: !!token },
+    { number: 2, label: "Build Policy", done: !!token },
     { number: 3, label: "Select Repos", done: selectedRepos.length > 0 },
     { number: 4, label: "Dry Run", done: dryRunDone },
     { number: 5, label: "Apply", done: false },
