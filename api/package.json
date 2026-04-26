@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "@aws-sdk/client-ecr": "^3.1037.0",
-    "jsonwebtoken": "^9.0.3"
+    "@aws-sdk/client-ecr": "^3.1037.0"
   }
 }

@@ -1,4 +1,4 @@
-const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const {
   ECRClient,
   DescribeRepositoriesCommand,
@@ -10,9 +10,28 @@ const {
 
 const SECRET = process.env.SESSION_SECRET;
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "http://localhost:5173";
+const TOKEN_TTL = 2 * 60 * 60; // 2 hours in seconds
 
-// In-memory dry-run gate (per cold-start instance)
 const dryRunCompleted = new Set();
+
+function signToken(payload) {
+  const header = Buffer.from(JSON.stringify({ alg: "HS256" })).toString("base64url");
+  const body = Buffer.from(JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + TOKEN_TTL })).toString("base64url");
+  const sig = crypto.createHmac("sha256", SECRET).update(`${header}.${body}`).digest("base64url");
+  return `${header}.${body}.${sig}`;
+}
+
+function verifyToken(token) {
+  const parts = token.split(".");
+  if (parts.length !== 3) throw new Error("Invalid token");
+  const [header, body, sig] = parts;
+  const expected = crypto.createHmac("sha256", SECRET).update(`${header}.${body}`).digest("base64url");
+  if (!crypto.timingSafeEqual(Buffer.from(sig, "base64url"), Buffer.from(expected, "base64url")))
+    throw new Error("Invalid token signature");
+  const payload = JSON.parse(Buffer.from(body, "base64url").toString());
+  if (payload.exp < Math.floor(Date.now() / 1000)) throw new Error("Token expired");
+  return payload;
+}
 
 function makeClient({ accessKeyId, secretAccessKey, region }) {
   return new ECRClient({ region, credentials: { accessKeyId, secretAccessKey } });
@@ -44,7 +63,7 @@ function getSession(req, res) {
   const auth = req.headers?.authorization;
   if (!auth?.startsWith("Bearer ")) { send(res, 401, { error: "Missing authorization token. Please reconnect." }); return null; }
   try {
-    return jwt.verify(auth.slice(7), SECRET);
+    return verifyToken(auth.slice(7));
   } catch {
     send(res, 401, { error: "Session expired. Please reconnect." });
     return null;
@@ -91,7 +110,7 @@ module.exports = async function handler(req, res) {
           nextToken = data.nextToken;
         } while (nextToken);
 
-        const token = jwt.sign({ accessKeyId, secretAccessKey, region }, SECRET, { expiresIn: "2h" });
+        const token = signToken({ accessKeyId, secretAccessKey, region });
         return send(res, 200, { token, repos });
       } catch (err) {
         return send(res, 401, { error: sanitizeError(err) });
@@ -173,6 +192,6 @@ module.exports = async function handler(req, res) {
 
     return send(res, 400, { error: "Unknown action" });
   } catch (err) {
-    return send(res, 500, { error: `Debug: ${err.name}: ${err.message}` });
+    return send(res, 500, { error: "An unexpected server error occurred." });
   }
 };
