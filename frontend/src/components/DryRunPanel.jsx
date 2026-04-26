@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Eye, ChevronDown, ChevronRight, Loader, AlertTriangle, CheckCircle } from "lucide-react";
 
-export default function DryRunPanel({ credentials, selectedRepos, policy, onComplete, onHistoryEntry }) {
+export default function DryRunPanel({ token, selectedRepos, policy, onComplete, onHistoryEntry }) {
   const [status, setStatus] = useState("idle"); // idle | running | polling | done | error
   const [results, setResults] = useState([]);
   const [expanded, setExpanded] = useState({});
   const [error, setError] = useState("");
+
+  const authHeader = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
   async function runDryRun() {
     setStatus("running");
@@ -13,14 +15,12 @@ export default function DryRunPanel({ credentials, selectedRepos, policy, onComp
     setResults([]);
 
     try {
-      // Start previews
       await fetch("/api/ecr?action=dry-run-start", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credentials, repos: selectedRepos, policy }),
+        headers: authHeader,
+        body: JSON.stringify({ repos: selectedRepos, policy }),
       });
 
-      // Poll until all complete
       setStatus("polling");
       let allDone = false;
       let pollResults = [];
@@ -29,8 +29,8 @@ export default function DryRunPanel({ credentials, selectedRepos, policy, onComp
         await new Promise((r) => setTimeout(r, 4000));
         const res = await fetch("/api/ecr?action=dry-run-results", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ credentials, repos: selectedRepos }),
+          headers: authHeader,
+          body: JSON.stringify({ repos: selectedRepos }),
         });
         const data = await res.json();
         pollResults = data.results;

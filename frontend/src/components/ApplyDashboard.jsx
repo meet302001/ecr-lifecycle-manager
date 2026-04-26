@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Rocket, CheckCircle, XCircle, Loader, ShieldAlert } from "lucide-react";
 
-export default function ApplyDashboard({ credentials, selectedRepos, policy, dryRunDone }) {
+export default function ApplyDashboard({ token, selectedRepos, policy, dryRunDone }) {
   const [status, setStatus] = useState("idle"); // idle | confirming | applying | done
   const [progress, setProgress] = useState([]);
   const [error, setError] = useState("");
@@ -14,8 +14,8 @@ export default function ApplyDashboard({ credentials, selectedRepos, policy, dry
     try {
       const res = await fetch("/api/ecr?action=apply", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credentials, repos: selectedRepos, policy }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ repos: selectedRepos, policy }),
       });
 
       const reader = res.body.getReader();

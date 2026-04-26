@@ -37,7 +37,7 @@ export default function AwsConfig({ onConnected }) {
       catch { throw new Error(`Server error (${res.status}): ${text.slice(0, 100)}`); }
       if (!res.ok) throw new Error(data.error);
       setStatus("success");
-      onConnected({ credentials: { accessKeyId: form.accessKeyId, secretAccessKey: form.secretAccessKey, region: form.region, accountId: form.accountId }, repos: data.repos });
+      onConnected({ token: data.token, repos: data.repos });
     } catch (err) {
       setStatus("error");
       setError(err.message);

@@ -18,15 +18,15 @@ const DEFAULT_POLICY = {
 };
 
 export default function App() {
-  const [credentials, setCredentials] = useState(null);
+  const [token, setToken] = useState(null);
   const [repos, setRepos] = useState([]);
   const [selectedRepos, setSelectedRepos] = useState([]);
   const [policy, setPolicy] = useState(DEFAULT_POLICY);
   const [dryRunDone, setDryRunDone] = useState(false);
   const [history, setHistory] = useState([]);
 
-  function handleConnected({ credentials, repos }) {
-    setCredentials(credentials);
+  function handleConnected({ token, repos }) {
+    setToken(token);
     setRepos(repos);
     setSelectedRepos(repos);
   }
@@ -85,7 +85,7 @@ export default function App() {
         {/* AWS Config */}
         <AwsConfig onConnected={handleConnected} />
 
-        {credentials && (
+        {token && (
           <>
             {/* Policy Builder + Repo Selector side by side */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -95,7 +95,7 @@ export default function App() {
 
             {/* Dry Run */}
             <DryRunPanel
-              credentials={credentials}
+              token={token}
               selectedRepos={selectedRepos}
               policy={policy}
               onComplete={handleDryRunComplete}
@@ -104,7 +104,7 @@ export default function App() {
 
             {/* Apply */}
             <ApplyDashboard
-              credentials={credentials}
+              token={token}
               selectedRepos={selectedRepos}
               policy={policy}
               dryRunDone={dryRunDone}
