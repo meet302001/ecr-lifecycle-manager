@@ -173,6 +173,6 @@ module.exports = async function handler(req, res) {
 
     return send(res, 400, { error: "Unknown action" });
   } catch (err) {
-    return send(res, 500, { error: "An unexpected server error occurred." });
+    return send(res, 500, { error: `Debug: ${err.name}: ${err.message}` });
   }
 };
